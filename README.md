@@ -1,6 +1,10 @@
 
 
 ## Entorno Python
+
+### Version de Python
+Python 3.11.5
+
 ### Inicializar entorno
 Este comando de terminal crea un entorno virtual de Python en el directorio actual. Un entorno virtual es un espacio aislado donde puedes instalar paquetes de Python sin afectar a otros proyectos o al sistema Python global. .venv es el nombre del directorio donde se creará el entorno virtual.
 ```pwsh

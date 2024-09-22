@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
+
+from db.models.user import User, UserDB
+from db.client import db_client
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_DURATION = 1
@@ -16,17 +18,6 @@ router = APIRouter(
 oauth2 = OAuth2PasswordBearer(tokenUrl="login")
 
 crypt = CryptContext(schemes=["bcrypt"])
-
-
-class User(BaseModel):
-    username: str
-    email: str
-    full_name: str
-    disabled: bool
-
-
-class UserDB(User):
-    password: str
 
 
 users_db = {
@@ -48,13 +39,23 @@ users_db = {
 
 
 def serch_user_db(username: str):
-    if username in users_db:
-        return UserDB(**users_db[username])
+    user_data = users_db.get(username)
+    if isinstance(user_data, dict):
+        return UserDB(**user_data)
+    elif isinstance(user_data, UserDB):
+        return user_data
+    else:
+        raise ValueError("Invalid user data type")
 
 
 def serch_user(username: str):
-    if username in users_db:
-        return User(**users_db[username])
+    user_data = users_db.get(username)
+    if isinstance(user_data, dict):
+        return User(**user_data)
+    elif isinstance(user_data, UserDB):
+        return user_data
+    else:
+        raise ValueError("Invalid user data type")
 
 
 async def auth_user(token: str = Depends(oauth2)):
@@ -112,3 +113,36 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
 @router.get("/me")
 async def me(user: User = Depends(current_user)):
     return user
+
+
+@router.get("/all")
+async def get_users(user: User = Depends(current_user)):
+    return users_db
+
+
+@router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
+async def create_user(user: UserDB):
+
+    db_client 
+
+    if user.username in users_db:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists"
+        )
+
+    # Hash the password
+    hashed_password = crypt.hash(user.password)
+
+    # Create a new user object
+    new_user = UserDB(
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        disabled=user.disabled,
+        password=hashed_password,
+    )
+
+    # Add the new user to the users_db dictionary
+    users_db[user.username] = new_user
+
+    return new_user

@@ -20,7 +20,9 @@ Este comando de terminal activa el entorno virtual que acabas de crear. Cuando u
 ## Instalaciones
 ### Instalar librerias necesarias para Fast API
 ```pwsh
-pip install fastapi uvicorn
+pip install fastapi uvicorn python-dotenv pymongo 
+pip install "python-jose[cryptograpy]"
+pip install "passlib[bcrypt]"
 ```
 
 ## Iniciar servicio

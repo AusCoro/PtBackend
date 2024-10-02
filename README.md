@@ -23,6 +23,7 @@ Este comando de terminal activa el entorno virtual que acabas de crear. Cuando u
 pip install fastapi uvicorn python-dotenv pymongo 
 pip install "python-jose[cryptograpy]"
 pip install "passlib[bcrypt]"
+pip install python-multipart
 ```
 
 ## Iniciar servicio

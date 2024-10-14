@@ -113,7 +113,6 @@ async def create_user(user_db: UserDB):
         "password": hashed_password
     }
 
-
     # Insertar el usuario en la base de datos
     id = db_client.local.users.insert_one(new_user_dict).inserted_id
 
@@ -122,10 +121,3 @@ async def create_user(user_db: UserDB):
 
     # Devolver el nuevo usuario como respuesta
     return User(**new_user)
-
-
-
-
-
-
-

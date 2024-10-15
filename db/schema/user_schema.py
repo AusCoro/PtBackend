@@ -1,4 +1,7 @@
-def user_Schema(user) -> dict:
+from models.user import User
+
+
+def user_Schema(user: User) -> dict:
     return {
         "id": str(user["_id"]),  # Asegúrate de manejar el _id si existe
         "username": user["username"],
@@ -6,5 +9,5 @@ def user_Schema(user) -> dict:
         "first_name": user["first_name"],
         "last_name": user["last_name"],
         "disabled": user["disabled"],
-        "type": user["type"],
+        "role": user["role"],
     }

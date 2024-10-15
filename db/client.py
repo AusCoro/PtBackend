@@ -1,2 +1,4 @@
 from pymongo import MongoClient
-db_client = MongoClient('localhost', 27017)
+db_client = MongoClient()
+
+db_client = db_client.CrewAndBag

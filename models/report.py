@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
 
@@ -6,6 +7,7 @@ class DeliveryStatus(str, Enum):
     active = "Activo"
     pending = "Pendiente"
     completed = "Finalizado"
+    invoiced = "Facturado"
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source, handler):
@@ -16,13 +18,12 @@ class Operator(BaseModel):
     operator_name: str
 
 class BdoOrder(BaseModel):
-    order_id: str
-    creation_date: datetime
-    delivery_date: datetime
+    id: Optional[str] | None = None
+    creation_date: Optional[datetime] | None = None
+    delivery_date: Optional[datetime] | None = None
     airline: str
-    baggage_quantity: int
     reference_number: int
     bdo_number: int
     delivery_zone: str
-    operator: Operator
-    delivery_status: DeliveryStatus
+    operator: Optional[Operator] | None = None
+    delivery_status: Optional[DeliveryStatus] | None = None

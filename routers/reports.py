@@ -1,57 +1,48 @@
-from datetime import timedelta
-from fastapi import APIRouter, Depends
-from models.report import *
+from datetime import time, datetime
+from fastapi import APIRouter, Depends, HTTPException, status
+from db.schema.report_schema import report_Schema
+from models.report import BdoOrder, DeliveryStatus
 from models.user import User
 from utils.auth import current_user
+from db.client import db_client
 
 router = APIRouter(
     prefix="/reports", tags=["reports"], responses={404: {"message": "Not found"}}
 )
 
-ordenBDO_lista = [
-    BdoOrder(
-        order_id="1",
-        creation_date=datetime.now(),
-        delivery_date=datetime.now() + timedelta(days=1),
-        airline="AerolineaX",
-        baggage_quantity=2,
-        reference_number=12345,
-        bdo_number=54321,
-        delivery_zone="Zone 1",
-        operator=Operator(operator_id="1", operator_name="Operator 1"),
-        delivery_status=DeliveryStatus.active
-    ),
-    BdoOrder(
-        order_id="2",
-        creation_date=datetime.now(),
-        delivery_date=datetime.now() + timedelta(days=2),
-        airline="AerolineaY",
-        baggage_quantity=2,
-        reference_number=12345,
-        bdo_number=54321,
-        delivery_zone="Zone 1",
-        operator=Operator(operator_id="1", operator_name="Operator 2"),
-        delivery_status=DeliveryStatus.pending
-    ),
-    BdoOrder(
-        order_id="3",
-        creation_date=datetime.now(),
-        delivery_date=datetime.now() + timedelta(days=3),
-        airline="AerolineaZ",
-        baggage_quantity=2,
-        reference_number=12345,
-        bdo_number=54321,
-        delivery_zone="Zone 1",
-        operator=Operator(operator_id="1", operator_name="Operator 2"),
-        delivery_status=DeliveryStatus.completed
-    ),
-]
-
 @router.get("/")
 async def get_reports(user: User = Depends(current_user)):
-    return ordenBDO_lista
+    reports = db_client.reports.find()
+    return [report_Schema(report) for report in reports]
 
-@router.post("/")
-async def create_report(report: BdoOrder, user: User = Depends(current_user)):
-    ordenBDO_lista.append(report)
-    return ordenBDO_lista
+@router.post("/", response_model=BdoOrder, status_code=status.HTTP_201_CREATED)
+async def create_report(report: BdoOrder, user: User = Depends(current_user)):    
+    new_report = {
+        "creation_date": datetime.now(),
+        "airline": report.airline,
+        "reference_number": report.reference_number,
+        "bdo_number": report.bdo_number,
+        "delivery_zone": report.delivery_zone,
+        "operator": {
+            "operator_id": user.id,
+            "operator_name": user.full_name
+        },
+        "delivery_status": DeliveryStatus.pending
+    }
+
+    report_id = db_client.reports.insert_one(new_report).inserted_id
+    
+    retries = 5
+    new_report = None
+    for _ in range(retries):
+        new_report = db_client.reports.find_one({"_id": report_id})
+        if new_report:
+            break
+        time.sleep(0.1)  # Esperar un poco antes de intentar de nuevo
+
+    if not new_report:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Report creation failed")
+
+    new_report = report_Schema(new_report)
+
+    return BdoOrder(**new_report)

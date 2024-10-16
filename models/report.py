@@ -9,9 +9,21 @@ class DeliveryStatus(str, Enum):
     completed = "Finalizado"
     invoiced = "Facturado"
 
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source, handler):
-        return handler.generate_schema(str)
+    def __lt__(self, other):
+        order = ["Facturado", "Finalizado", "Activo", "Pendiente"]
+        if self.__class__ is other.__class__:
+            return order.index(self.value) > order.index(other.value)
+        return NotImplemented
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __gt__(self, other):
+        return not self <= other
+
+    def __ge__(self, other):
+        return not self < other
+    
 
 class Operator(BaseModel):
     operator_id: str

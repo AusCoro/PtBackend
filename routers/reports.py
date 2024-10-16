@@ -1,4 +1,5 @@
 from datetime import time, datetime
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from db.schema.report_schema import report_Schema
 from models.report import BdoOrder, DeliveryStatus
@@ -46,3 +47,40 @@ async def create_report(report: BdoOrder, user: User = Depends(current_user)):
     new_report = report_Schema(new_report)
 
     return BdoOrder(**new_report)
+
+@router.put("/", response_model=BdoOrder, status_code=status.HTTP_200_OK)
+async def update_report_status(
+    report_id: str,
+    delivery_status: str,
+    user: User = Depends(current_user)
+):
+
+    report = db_client.reports.find_one({"_id": ObjectId(report_id)})
+        
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    
+    try:
+        current_status = DeliveryStatus(report["delivery_status"])
+        new_status = DeliveryStatus(delivery_status)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid delivery status: {e}"
+        )
+
+    if new_status <= current_status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update to the same or lower status"
+        )
+        
+    db_client.reports.update_one(
+        {"_id": ObjectId(report_id)},
+        {"$set": {"delivery_status": delivery_status}}
+    )
+        
+    updated_report = db_client.reports.find_one({"_id": ObjectId(report_id)})
+    updated_report = report_Schema(updated_report)
+        
+    return BdoOrder(**updated_report)

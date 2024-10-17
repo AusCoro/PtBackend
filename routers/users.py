@@ -104,6 +104,7 @@ async def create_user(user_db: UserDB, user: User = Depends(current_user)):
         "last_name": user_db.last_name,
         "disabled": False,
         "role": user_db.role,
+        "zone": user_db.zone,
         "password": hashed_password
     }
 

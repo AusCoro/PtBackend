@@ -3,7 +3,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from db.schema.report_schema import report_Schema
 from models.report import BdoOrder, DeliveryStatus
-from models.user import User
+from models.user import User, UserRole
 from utils.auth import current_user
 from db.client import db_client
 
@@ -32,8 +32,12 @@ def status_checker(current_status: DeliveryStatus, new_status: DeliveryStatus):
 
 @router.get("/")
 async def get_reports(user: User = Depends(current_user)):
-    reports = db_client.reports.find()
-    return [report_Schema(report) for report in reports]
+    if user.role == UserRole.admin:
+        reports = db_client.reports.find()
+        return [report_Schema(report) for report in reports]
+    else:
+        reports = db_client.reports.find({"delivery_zone": user.zone})
+        return [report_Schema(report) for report in reports]
 
 @router.post("/", response_model=BdoOrder, status_code=status.HTTP_201_CREATED)
 async def create_report(report: BdoOrder, user: User = Depends(current_user)):    

@@ -3,7 +3,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from db.schema.report_schema import report_Schema
 from models.report import BdoOrder, DeliveryStatus
-from models.user import User
+from models.user import User, UserRole
 from utils.auth import current_user
 from db.client import db_client
 
@@ -11,10 +11,33 @@ router = APIRouter(
     prefix="/reports", tags=["reports"], responses={404: {"message": "Not found"}}
 )
 
+def status_checker(current_status: DeliveryStatus, new_status: DeliveryStatus):
+    if new_status <= current_status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update to the same or lower status"
+        )
+    
+    if current_status == DeliveryStatus.pending and new_status == DeliveryStatus.completed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update directly from pending to completed"
+        )
+    
+    if current_status == DeliveryStatus.pending and new_status == DeliveryStatus.invoiced:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update directly from pending to invoiced"
+        )
+
 @router.get("/")
 async def get_reports(user: User = Depends(current_user)):
-    reports = db_client.reports.find()
-    return [report_Schema(report) for report in reports]
+    if user.role == UserRole.admin:
+        reports = db_client.reports.find()
+        return [report_Schema(report) for report in reports]
+    else:
+        reports = db_client.reports.find({"delivery_zone": user.zone})
+        return [report_Schema(report) for report in reports]
 
 @router.post("/", response_model=BdoOrder, status_code=status.HTTP_201_CREATED)
 async def create_report(report: BdoOrder, user: User = Depends(current_user)):    
@@ -69,16 +92,22 @@ async def update_report_status(
             detail=f"Invalid delivery status: {e}"
         )
 
-    if new_status <= current_status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update to the same or lower status"
+    status_checker(current_status, new_status)
+
+    if new_status == DeliveryStatus.completed:
+            db_client.reports.update_one(
+                {"_id": ObjectId(report_id)},
+                {
+                    "$set": {
+                        "delivery_status": delivery_status,
+                        "delivery_date": datetime.now(),
+                    }
+                },
+            )
+    else:
+        db_client.reports.update_one(
+            {"_id": ObjectId(report_id)}, {"$set": {"delivery_status": delivery_status}}
         )
-        
-    db_client.reports.update_one(
-        {"_id": ObjectId(report_id)},
-        {"$set": {"delivery_status": delivery_status}}
-    )
         
     updated_report = db_client.reports.find_one({"_id": ObjectId(report_id)})
     updated_report = report_Schema(updated_report)

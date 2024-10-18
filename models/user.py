@@ -9,6 +9,7 @@ class User(BaseModel):
     first_name: str
     last_name: str
     role: str
+    zone: str
     disabled: Optional[bool] | None = None
 
 

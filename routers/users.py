@@ -93,11 +93,11 @@ async def get_users(user: User = Depends(current_user)):
 
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
-#async def create_user(user_db: UserDB, user: User = Depends(current_user)):
-async def create_user(user_db: UserDB):
+async def create_user(user_db: UserDB, user: User = Depends(current_user)):
+# async def create_user(user_db: UserDB):
 
-#    if user.role == UserRole.operator:
-#        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
+    if user.role == UserRole.operator:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
 
     username = generate_username(user_db.first_name, user_db.last_name)
     hashed_password = crypt.hash(user_db.password)

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import reports, users
+from routers import dash, reports, users
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -22,6 +22,7 @@ app.add_middleware(
 # Routers
 app.include_router(users.router)
 app.include_router(reports.router)
+app.include_router(dash.router)
 
 
 

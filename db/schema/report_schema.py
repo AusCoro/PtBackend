@@ -8,6 +8,7 @@ def report_Schema(report: BdoOrder) -> dict:
         "airline": report.get("airline"),
         "reference_number": report.get("reference_number"),
         "bdo_number": report.get("bdo_number"),
+        "destination": report.get("destination"),
         "delivery_zone": report.get("delivery_zone"),
         "operator": report.get("operator"),
         "delivery_status": report.get("delivery_status")

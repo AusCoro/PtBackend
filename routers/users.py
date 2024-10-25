@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 from passlib.context import CryptContext
 from datetime import datetime, time, timedelta, timezone
+from bson import ObjectId
 
 from models.user import User, UserDB, UserRole
 
@@ -14,6 +15,8 @@ from utils.search import serch_user_db
 
 from db.schema.user_schema import user_Schema
 from db.client import db_client
+from fastapi import Form
+
 
 load_dotenv()
 
@@ -91,6 +94,8 @@ async def get_users(user: User = Depends(current_user)):
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user_db: UserDB, user: User = Depends(current_user)):
+# async def create_user(user_db: UserDB):
+
     if user.role == UserRole.operator:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized user")
 
@@ -104,6 +109,7 @@ async def create_user(user_db: UserDB, user: User = Depends(current_user)):
         "last_name": user_db.last_name,
         "disabled": False,
         "role": user_db.role,
+        "zone": user_db.zone,
         "password": hashed_password
     }
 
@@ -127,3 +133,52 @@ async def create_user(user_db: UserDB, user: User = Depends(current_user)):
 
     # Devolver el nuevo usuario como respuesta
     return User(**new_user)
+
+
+#chequando si se permite modificar el rol de un usuario,
+@router.put("/change-role/")
+async def change_user_role(user_id: str, new_role: UserRole, current_user: User = Depends(current_user)): 
+
+    # chequeando si el usuario autenticado tiene permisos para cambiar roles
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to change role")
+
+    # Busqueando el usuario a modificar en la base de datos
+    user_to_modify = db_client.users.find_one({"_id": ObjectId(user_id)})
+
+    if not user_to_modify:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Actualizacion del rol del usuario en la base de datos
+    db_client.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
+
+    updated_user = db_client.users.find_one({"_id": ObjectId(user_id)})
+    updated_user = user_Schema(updated_user)
+
+    # reornamiento de una respuesta de éxito
+    return User(**updated_user)
+
+
+#cambio de contraseña
+@router.put("/change-password/{user_id}")
+async def change_password(user_id: str, password_request: str = Form(...), current_user: User = Depends(current_user)):
+    # Verificar el rol del usuario que hace la solicitud (quien envía el token)
+    if current_user.role == UserRole.operator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operators cannot change passwords")
+
+    # Buscar el usuario al que se desea cambiar la contraseña por su ID
+    user_to_modify = db_client.users.find_one({"_id": ObjectId(user_id)})
+
+    if not user_to_modify:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Verificar permisos del usuario (si es Supervisor, solo puede cambiar contraseñas de Operadores)
+    if current_user.role == UserRole.supervisor and user_to_modify["role"] != UserRole.operator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Supervisors can only change Operator passwords")
+
+    # Si todo está correcto, proceder con el cambio de contraseña
+    hashed_password = crypt.hash(password_request)
+    db_client.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password": hashed_password}})
+
+    return {"message": f"Password updated for user with ID {user_id}"}
+

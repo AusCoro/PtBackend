@@ -9,5 +9,6 @@ def user_Schema(user: User) -> dict:
         "first_name": user["first_name"],
         "last_name": user["last_name"],
         "disabled": user["disabled"],
+        "zone": user["zone"],
         "role": user["role"],
     }

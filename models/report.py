@@ -37,5 +37,6 @@ class BdoOrder(BaseModel):
     reference_number: int
     bdo_number: int
     delivery_zone: str
+    destination: str
     operator: Optional[Operator] | None = None
     delivery_status: Optional[DeliveryStatus] | None = None

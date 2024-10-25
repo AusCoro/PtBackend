@@ -152,8 +152,11 @@ async def change_user_role(user_id: str, new_role: UserRole, current_user: User 
     # Actualizacion del rol del usuario en la base de datos
     db_client.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
 
+    updated_user = db_client.users.find_one({"_id": ObjectId(user_id)})
+    updated_user = user_Schema(updated_user)
+
     # reornamiento de una respuesta de éxito
-    return {"message": f"User role updated to {new_role}"}
+    return User(**updated_user)
 
 
 #cambio de contraseña

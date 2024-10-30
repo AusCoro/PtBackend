@@ -1,5 +1,14 @@
+from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional
+
+class ReportsData(BaseModel):
+    delivery_date: Optional[datetime]
+    creation_date: Optional[datetime]
+    bdo_number: int
+    airline: str
+    delivery_status: str
+    destination: str
 
 class ReportCount(BaseModel):
     day: Optional[int]
@@ -9,6 +18,7 @@ class ReportCount(BaseModel):
 
 class ReportCountResponse(BaseModel):
     reports: List[ReportCount]
+    reports_data: Optional[List[ReportsData]] | None
 
 class AverageCompletionTime(BaseModel):
     delivery_zone: str

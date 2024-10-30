@@ -55,7 +55,7 @@ async def get_reports_count(
                 detail="The operator has no reports with the specified status",
             )
 
-    if airline:
+    if airline and airline != "Todas":
         match_conditions["airline"] = airline
 
     now = datetime.now()

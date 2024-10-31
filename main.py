@@ -8,6 +8,7 @@ app = FastAPI()
 # Configurar los orígenes permitidos
 origins = [
     "http://localhost:4200",  # Especifica el origen de tu frontend
+    'https://ptfrontend.onrender.com'
     # Si necesitas permitir otros orígenes, añádelos aquí.
 ]
 

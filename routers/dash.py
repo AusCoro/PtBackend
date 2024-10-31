@@ -282,7 +282,7 @@ async def get_status_percentages(
     status_percentages = [
         StatusPercentage(
             status=item["status"],
-            percentage=(item["count"] / total_count) * 100
+            percentage=int((item["count"] / total_count) * 100)
         )
         for item in result
     ]
